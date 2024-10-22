@@ -172,7 +172,15 @@
             attendanceData[className][student] = statusType;
             localStorage.setItem('attendanceData', JSON.stringify(attendanceData));
 
-            // Aggiorna la tabella
+            // Aggiorna i totali nella riga dello studente
+            const row = Array.from(tableBody.children).find(r => r.firstChild.textContent === student);
+            if (row) {
+                row.children[4].textContent = countTotal('present', student);
+                row.children[5].textContent = countTotal('absent', student);
+                row.children[6].textContent = countTotal('late', student);
+            }
+
+            // Aggiorna i totali complessivi
             updateTotals();
         }
 
@@ -223,6 +231,25 @@
                     row.querySelectorAll('.count')[2].textContent = lateCell;
                 }
             });
+        }
+
+        // Aggiorna i totali complessivi (presenze, assenze, ritardi)
+        function updateTotals() {
+            let totalPresent = 0;
+            let totalAbsent = 0;
+            let totalLate = 0;
+
+            Object.keys(attendanceData).forEach(className => {
+                Object.values(attendanceData[className]).forEach(status => {
+                    if (status === 'present') totalPresent++;
+                    if (status === 'absent') totalAbsent++;
+                    if (status === 'late') totalLate++;
+                });
+            });
+
+            presentTotal.textContent = `(${totalPresent})`;
+            absentTotal.textContent = `(${totalAbsent})`;
+            lateTotal.textContent = `(${totalLate})`;
         }
 
         // Carica la classe salvata
