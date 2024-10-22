@@ -89,9 +89,9 @@
         // Quando si seleziona una classe
         classSelect.addEventListener('change', function() {
             const selectedClass = classSelect.value;
-            if (selectedClass) {
+            if (selectedClass && students[selectedClass]) { // Controlla se la classe è valida
                 loadStudents(selectedClass);
-                studentsTable.style.display = 'table';
+                studentsTable.style.display = 'table'; // Mostra la tabella se la classe esiste
             } else {
                 studentsTable.style.display = 'none';
             }
@@ -182,55 +182,6 @@
 
             // Aggiorna i totali complessivi
             updateTotals();
-        }
-
-        // Aggiorna lo stato visibile di presenza, assenza, ritardo accanto allo studente
-        function updateVisibleStatus(student, className) {
-            const row = Array.from(tableBody.children).find(row => row.firstChild.textContent === student);
-            if (!row) return;
-
-            const status = attendanceData[className]?.[student];
-            if (!status) return;
-
-            const cells = row.querySelectorAll('.status');
-            cells.forEach(cell => {
-                cell.textContent = ''; // Resetta il testo
-            });
-
-            const cellToUpdate = Array.from(cells).find(cell => cell.classList.contains(status));
-            if (cellToUpdate) {
-                cellToUpdate.textContent = '✔️'; // Segno di spunta o altro simbolo per indicare lo stato
-            }
-
-            // Aggiorna i totali accanto alle colonne
-            updateColumnCounts(className);
-        }
-
-        // Conta il totale di presenze, assenze o ritardi per lo studente
-        function countTotal(statusType, student) {
-            let totalCount = 0;
-            Object.keys(attendanceData).forEach(className => {
-                if (attendanceData[className][student] === statusType) {
-                    totalCount++;
-                }
-            });
-            return totalCount;
-        }
-
-        // Aggiorna i totali accanto alle colonne
-        function updateColumnCounts(className) {
-            students[className].forEach(student => {
-                const row = Array.from(tableBody.children).find(row => row.firstChild.textContent === student);
-                if (row) {
-                    const presentCell = row.querySelectorAll('.status.present').length;
-                    const absentCell = row.querySelectorAll('.status.absent').length;
-                    const lateCell = row.querySelectorAll('.status.late').length;
-
-                    row.querySelectorAll('.count')[0].textContent = presentCell;
-                    row.querySelectorAll('.count')[1].textContent = absentCell;
-                    row.querySelectorAll('.count')[2].textContent = lateCell;
-                }
-            });
         }
 
         // Aggiorna i totali complessivi (presenze, assenze, ritardi)
