@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario Attività</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Calendario delle Materie</h1>
+    <div id="calendar"></div>
+
+    <!-- Form per aggiungere una materia -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Aggiungi una materia</h2>
+            <form id="subjectForm">
+                <label for="subjectDate">Data:</label>
+                <input type="date" id="subjectDate" required><br><br>
+
+                <label for="startTime">Ora di inizio:</label>
+                <input type="time" id="startTime" required><br><br>
+
+                <label for="endTime">Ora di fine:</label>
+                <input type="time" id="endTime" required><br><br>
+
+                <label for="subjectName">Materia:</label>
+                <input type="text" id="subjectName" placeholder="Inserisci materia" required><br><br>
+
+                <button type="submit">Aggiungi</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('subjectForm');
+            const calendar = document.getElementById('calendar');
+            let storedLessons = JSON.parse(localStorage.getItem('lessons')) || [];
+
+            // Funzione per creare le colonne dei giorni
+            function createDayColumns() {
+                const uniqueDates = [...new Set(storedLessons.map(lesson => lesson.date))]; // Date uniche
+                calendar.innerHTML = ''; // Pulisce il calendario
+
+                uniqueDates.forEach(date => {
+                    const dayColumn = document.createElement('div');
+                    dayColumn.className = 'day-column';
+                    dayColumn.innerHTML = `<h3>${date}</h3>`;
+                    calendar.appendChild(dayColumn);
+                    
+                    const lessonsForDay = storedLessons.filter(lesson => lesson.date === date); // Lezioni per il giorno
+                    lessonsForDay.forEach(lesson => {
+                        const lessonDiv = document.createElement('div');
+                        lessonDiv.className = 'lesson';
+                        lessonDiv.innerHTML = `<strong>${lesson.subject}</strong><br>${lesson.startTime} - ${lesson.endTime}`;
+                        dayColumn.appendChild(lessonDiv);
+                    });
+                });
+            }
+
+            // Salva una materia nel localStorage
+            function saveLesson(lesson) {
+                storedLessons.push(lesson);
+                localStorage.setItem('lessons', JSON.stringify(storedLessons));
+            }
+
+            // Gestione del form di aggiunta
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                
+                const date = document.getElementById('subjectDate').value;
+                const startTime = document.getElementById('startTime').value;
+                const endTime = document.getElementById('endTime').value;
+                const subject = document.getElementById('subjectName').value;
+
+                const newLesson = {
+                    date,
+                    startTime,
+                    endTime,
+                    subject
+                };
+
+                saveLesson(newLesson); // Salva la nuova materia
+                createDayColumns();    // Aggiorna il calendario con le colonne dei giorni
+                form.reset();          // Resetta il form
+            });
+
+            createDayColumns(); // Visualizza le materie salvate al caricamento della pagina
+        });
+    </script>
+</body>
+</html>
