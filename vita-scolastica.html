@@ -153,11 +153,10 @@
                 cell.style.backgroundColor = getStatusColor(statusType);
             }
 
-            // Al click, cambia lo stato e aggiorna il conteggio
+            // Al click, cambia lo stato
             cell.addEventListener('click', function() {
                 updateStatus(className, student, statusType);
                 updateVisibleStatus(student, className); // Aggiorna lo stato visibile
-                incrementCount(statusType); // Incrementa il conteggio del totale
             });
 
             return cell;
@@ -175,20 +174,6 @@
 
             // Aggiorna la tabella
             updateTotals();
-        }
-
-        // Incrementa il conteggio in base al tipo di stato (presente, assente, ritardo)
-        function incrementCount(statusType) {
-            let countElement;
-            if (statusType === 'present') {
-                countElement = presentTotal;
-            } else if (statusType === 'absent') {
-                countElement = absentTotal;
-            } else if (statusType === 'late') {
-                countElement = lateTotal;
-            }
-            const currentCount = parseInt(countElement.textContent.match(/\d+/)[0]);
-            countElement.textContent = `(${currentCount + 1})`;
         }
 
         // Aggiorna lo stato visibile di presenza, assenza, ritardo accanto allo studente
