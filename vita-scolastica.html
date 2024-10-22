@@ -89,9 +89,9 @@
         // Quando si seleziona una classe
         classSelect.addEventListener('change', function() {
             const selectedClass = classSelect.value;
-            if (selectedClass && students[selectedClass]) { // Controlla se la classe è valida
+            if (selectedClass) {
                 loadStudents(selectedClass);
-                studentsTable.style.display = 'table'; // Mostra la tabella se la classe esiste
+                studentsTable.style.display = 'table';
             } else {
                 studentsTable.style.display = 'none';
             }
@@ -153,10 +153,11 @@
                 cell.style.backgroundColor = getStatusColor(statusType);
             }
 
-            // Al click, cambia lo stato
+            // Al click, cambia lo stato e aggiorna il conteggio
             cell.addEventListener('click', function() {
                 updateStatus(className, student, statusType);
                 updateVisibleStatus(student, className); // Aggiorna lo stato visibile
+                incrementCount(statusType); // Incrementa il conteggio del totale
             });
 
             return cell;
@@ -172,35 +173,71 @@
             attendanceData[className][student] = statusType;
             localStorage.setItem('attendanceData', JSON.stringify(attendanceData));
 
-            // Aggiorna i totali nella riga dello studente
-            const row = Array.from(tableBody.children).find(r => r.firstChild.textContent === student);
-            if (row) {
-                row.children[4].textContent = countTotal('present', student);
-                row.children[5].textContent = countTotal('absent', student);
-                row.children[6].textContent = countTotal('late', student);
-            }
-
-            // Aggiorna i totali complessivi
+            // Aggiorna la tabella
             updateTotals();
         }
 
-        // Aggiorna i totali complessivi (presenze, assenze, ritardi)
-        function updateTotals() {
-            let totalPresent = 0;
-            let totalAbsent = 0;
-            let totalLate = 0;
+        // Incrementa il conteggio in base al tipo di stato (presente, assente, ritardo)
+        function incrementCount(statusType) {
+            let countElement;
+            if (statusType === 'present') {
+                countElement = presentTotal;
+            } else if (statusType === 'absent') {
+                countElement = absentTotal;
+            } else if (statusType === 'late') {
+                countElement = lateTotal;
+            }
+            const currentCount = parseInt(countElement.textContent.match(/\d+/)[0]);
+            countElement.textContent = `(${currentCount + 1})`;
+        }
 
-            Object.keys(attendanceData).forEach(className => {
-                Object.values(attendanceData[className]).forEach(status => {
-                    if (status === 'present') totalPresent++;
-                    if (status === 'absent') totalAbsent++;
-                    if (status === 'late') totalLate++;
-                });
+        // Aggiorna lo stato visibile di presenza, assenza, ritardo accanto allo studente
+        function updateVisibleStatus(student, className) {
+            const row = Array.from(tableBody.children).find(row => row.firstChild.textContent === student);
+            if (!row) return;
+
+            const status = attendanceData[className]?.[student];
+            if (!status) return;
+
+            const cells = row.querySelectorAll('.status');
+            cells.forEach(cell => {
+                cell.textContent = ''; // Resetta il testo
             });
 
-            presentTotal.textContent = `(${totalPresent})`;
-            absentTotal.textContent = `(${totalAbsent})`;
-            lateTotal.textContent = `(${totalLate})`;
+            const cellToUpdate = Array.from(cells).find(cell => cell.classList.contains(status));
+            if (cellToUpdate) {
+                cellToUpdate.textContent = '✔️'; // Segno di spunta o altro simbolo per indicare lo stato
+            }
+
+            // Aggiorna i totali accanto alle colonne
+            updateColumnCounts(className);
+        }
+
+        // Conta il totale di presenze, assenze o ritardi per lo studente
+        function countTotal(statusType, student) {
+            let totalCount = 0;
+            Object.keys(attendanceData).forEach(className => {
+                if (attendanceData[className][student] === statusType) {
+                    totalCount++;
+                }
+            });
+            return totalCount;
+        }
+
+        // Aggiorna i totali accanto alle colonne
+        function updateColumnCounts(className) {
+            students[className].forEach(student => {
+                const row = Array.from(tableBody.children).find(row => row.firstChild.textContent === student);
+                if (row) {
+                    const presentCell = row.querySelectorAll('.status.present').length;
+                    const absentCell = row.querySelectorAll('.status.absent').length;
+                    const lateCell = row.querySelectorAll('.status.late').length;
+
+                    row.querySelectorAll('.count')[0].textContent = presentCell;
+                    row.querySelectorAll('.count')[1].textContent = absentCell;
+                    row.querySelectorAll('.count')[2].textContent = lateCell;
+                }
+            });
         }
 
         // Carica la classe salvata
