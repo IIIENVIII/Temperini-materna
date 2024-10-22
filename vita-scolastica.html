@@ -3,241 +3,220 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vita Scolastica</title>
+    <title>Gestione Presenze</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             padding: 20px;
+            background-color: #f4f4f4;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
         }
         table, th, td {
-            border: 1px solid black;
-            border-collapse: collapse;
-            padding: 10px;
-            text-align: center;
+            border: 1px solid #ddd;
         }
         th, td {
-            width: auto;
+            padding: 12px;
+            text-align: left;
         }
-        .status {
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        input[type="button"], input[type="submit"] {
+            padding: 5px;
+            background-color: #007bff;
+            color: white;
+            border: none;
             cursor: pointer;
         }
-        .status.present {
-            background-color: lightgreen;
+        input[type="button"]:hover, input[type="submit"]:hover {
+            background-color: #0056b3;
         }
-        .status.absent {
-            background-color: lightcoral;
-        }
-        .status.late {
-            background-color: yellow;
-        }
-        .count {
-            font-size: 0.8em;
-            color: gray;
+        .notifica {
+            margin-left: 10px;
+            font-weight: bold;
+            color: green;
         }
     </style>
 </head>
 <body>
-    <h1>Vita Scolastica - Registro Presenze</h1>
 
-    <!-- Seleziona la classe -->
-    <label for="classSelect">Seleziona la classe:</label>
-    <select id="classSelect">
-        <option value="">-- Seleziona una classe --</option>
-        <option value="3 media">3 media</option>
-        <option value="1 superiore">1 superiore</option>
-    </select>
+<h1>Gestione Presenze</h1>
+<table id="tabellaPresenze">
+    <thead>
+        <tr>
+            <th>Nome Studente</th>
+            <th>Presenze</th>
+            <th>Assenze</th>
+            <th>Ritardi</th>
+            <th>Azioni</th>
+            <th>Inserisci Presenze</th>
+            <th>Inserisci Assenze</th>
+            <th>Inserisci Ritardi</th>
+        </tr>
+    </thead>
+    <tbody id="tbodyPresenze">
+    </tbody>
+</table>
 
-    <!-- Tabella studenti -->
-    <table id="studentsTable" style="margin-top: 20px; display: none;">
-        <thead>
-            <tr>
-                <th>Studente</th>
-                <th>Presente <span id="presentTotal" class="count">(0)</span></th>
-                <th>Assente <span id="absentTotal" class="count">(0)</span></th>
-                <th>Ritardo <span id="lateTotal" class="count">(0)</span></th>
-                <th>Presenze Totali</th>
-                <th>Assenze Totali</th>
-                <th>Ritardi Totali</th>
-            </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-    </table>
+<script>
+    const studenti = [
+        "Stellina Dematteis",
+        "Tartaruga Dematteis",
+        "Yucky Benua",
+        "Lollo Benua",
+        "Leonard Benua",
+        "Sparcky Benua",
+        "Flaffy Dematteis",
+        "Tina Dematteis",
+        "Grigetta Benua",
+        "Luna Dematteis",
+        "Luna Benua",
+        "Kendy Dematteis",
+        "Papero Benua",
+        "Curt Dematteis",
+        "Briciola Dematteis",
+        "Lampo Benua",
+        "Attiglio Dematteis"
+    ];
 
-    <script>
-        const students = {
-            '3 media': [
-                "Stellina Dematteis", "Tartaruga Dematteis", "Yucky Benua", "Lollo Benua", "Leonard Benua",
-                "Sparcky Benua", "Flaffy Dematteis", "Tina Dematteis", "Grigetta Benua", "Luna Dematteis",
-                "Luna Benua", "Kendy Dematteis", "Papero Benua", "Curt Dematteis", "Briciola Dematteis", 
-                "Lampo Benua", "Sunny Benua", "Attiglio Dematteis"
-            ],
-            '1 superiore': [
-                "Cane Dematteis", "Cane Benua", "Mician Dematteis", "Cicciobello Allabue", "Micheal Temperini", 
-            "Cattivo Temperini", "Bambola Rossetti", "Teschio Carottini", "Robottina Carottini"
-            ]
-        };
-
-        const classSelect = document.getElementById('classSelect');
-        const studentsTable = document.getElementById('studentsTable');
-        const tableBody = document.getElementById('tableBody');
-        const presentTotal = document.getElementById('presentTotal');
-        const absentTotal = document.getElementById('absentTotal');
-        const lateTotal = document.getElementById('lateTotal');
-
-        let attendanceData = JSON.parse(localStorage.getItem('attendanceData')) || {}; // Dati salvati
-
-        // Quando si seleziona una classe
-        classSelect.addEventListener('change', function() {
-            const selectedClass = classSelect.value;
-            if (selectedClass) {
-                loadStudents(selectedClass);
-                studentsTable.style.display = 'table';
-            } else {
-                studentsTable.style.display = 'none';
+    // Carica le presenze dal localStorage
+    window.onload = function() {
+        const presenze = JSON.parse(localStorage.getItem('presenze')) || {};
+        studenti.forEach(nome => {
+            if (!presenze[nome]) {
+                presenze[nome] = { presente: 0, assente: 0, ritardo: 0 };
             }
+            aggiungiPresenzaTabella(nome, presenze[nome]);
         });
+    };
 
-        // Carica gli studenti nella tabella
-        function loadStudents(className) {
-            tableBody.innerHTML = ''; // Pulisce la tabella
+    function aggiungiPresenzaTabella(nome, conteggio) {
+        const tbody = document.getElementById('tbodyPresenze');
+        const tr = document.createElement('tr');
 
-            students[className].forEach(student => {
-                const row = document.createElement('tr');
+        // Nome studente
+        const tdStudente = document.createElement('td');
+        tdStudente.textContent = nome;
+        tr.appendChild(tdStudente);
 
-                const studentCell = document.createElement('td');
-                studentCell.textContent = student;
-                row.appendChild(studentCell);
+        // Presenze
+        const tdPresente = document.createElement('td');
+        tdPresente.textContent = conteggio.presente;
+        tdPresente.id = `presente-${nome}`;
+        tr.appendChild(tdPresente);
 
-                // Colonna Presente
-                const presentCell = createStatusCell('present', className, student);
-                row.appendChild(presentCell);
+        // Assenze
+        const tdAssente = document.createElement('td');
+        tdAssente.textContent = conteggio.assente;
+        tdAssente.id = `assente-${nome}`;
+        tr.appendChild(tdAssente);
 
-                // Colonna Assente
-                const absentCell = createStatusCell('absent', className, student);
-                row.appendChild(absentCell);
+        // Ritardi
+        const tdRitardo = document.createElement('td');
+        tdRitardo.textContent = conteggio.ritardo;
+        tdRitardo.id = `ritardo-${nome}`;
+        tr.appendChild(tdRitardo);
 
-                // Colonna Ritardo
-                const lateCell = createStatusCell('late', className, student);
-                row.appendChild(lateCell);
+        // Azioni
+        const tdAzioni = document.createElement('td');
+        const btnPresente = document.createElement('input');
+        btnPresente.type = 'button';
+        btnPresente.value = 'Presente';
+        btnPresente.onclick = () => aggiornaConteggio(nome, 'presente');
+        tdAzioni.appendChild(btnPresente);
 
-                // Colonna Presenze Totali
-                const totalPresentCell = document.createElement('td');
-                totalPresentCell.textContent = countTotal('present', student);
-                row.appendChild(totalPresentCell);
+        const btnAssente = document.createElement('input');
+        btnAssente.type = 'button';
+        btnAssente.value = 'Assente';
+        btnAssente.onclick = () => aggiornaConteggio(nome, 'assente');
+        tdAzioni.appendChild(btnAssente);
 
-                // Colonna Assenze Totali
-                const totalAbsentCell = document.createElement('td');
-                totalAbsentCell.textContent = countTotal('absent', student);
-                row.appendChild(totalAbsentCell);
+        const btnRitardo = document.createElement('input');
+        btnRitardo.type = 'button';
+        btnRitardo.value = 'In Ritardo';
+        btnRitardo.onclick = () => aggiornaConteggio(nome, 'ritardo');
+        tdAzioni.appendChild(btnRitardo);
+        tr.appendChild(tdAzioni);
 
-                // Colonna Ritardi Totali
-                const totalLateCell = document.createElement('td');
-                totalLateCell.textContent = countTotal('late', student);
-                row.appendChild(totalLateCell);
+        // Inserisci presenze
+        const tdInserisciPresenze = document.createElement('td');
+        const inputPresenze = document.createElement('input');
+        inputPresenze.type = 'number';
+        inputPresenze.id = `inserisci-presente-${nome}`;
+        tdInserisciPresenze.appendChild(inputPresenze);
+        const btnInserisciPresenze = document.createElement('input');
+        btnInserisciPresenze.type = 'submit';
+        btnInserisciPresenze.value = 'Inserisci';
+        btnInserisciPresenze.onclick = () => inserisciConteggio(nome, 'presente', inputPresenze.value);
+        tdInserisciPresenze.appendChild(btnInserisciPresenze);
+        tr.appendChild(tdInserisciPresenze);
 
-                tableBody.appendChild(row);
+        // Inserisci assenze
+        const tdInserisciAssenze = document.createElement('td');
+        const inputAssenze = document.createElement('input');
+        inputAssenze.type = 'number';
+        inputAssenze.id = `inserisci-assente-${nome}`;
+        tdInserisciAssenze.appendChild(inputAssenze);
+        const btnInserisciAssenze = document.createElement('input');
+        btnInserisciAssenze.type = 'submit';
+        btnInserisciAssenze.value = 'Inserisci';
+        btnInserisciAssenze.onclick = () => inserisciConteggio(nome, 'assente', inputAssenze.value);
+        tdInserisciAssenze.appendChild(btnInserisciAssenze);
+        tr.appendChild(tdInserisciAssenze);
 
-                // Aggiorna lo stato visibile iniziale
-                updateVisibleStatus(student, className);
-            });
+        // Inserisci ritardi
+        const tdInserisciRitardi = document.createElement('td');
+        const inputRitardi = document.createElement('input');
+        inputRitardi.type = 'number';
+        inputRitardi.id = `inserisci-ritardo-${nome}`;
+        tdInserisciRitardi.appendChild(inputRitardi);
+        const btnInserisciRitardi = document.createElement('input');
+        btnInserisciRitardi.type = 'submit';
+        btnInserisciRitardi.value = 'Inserisci';
+        btnInserisciRitardi.onclick = () => inserisciConteggio(nome, 'ritardo', inputRitardi.value);
+        tdInserisciRitardi.appendChild(btnInserisciRitardi);
+        tr.appendChild(tdInserisciRitardi);
+
+        tbody.appendChild(tr);
+    }
+
+    function aggiornaConteggio(nome, tipo) {
+        const presenze = JSON.parse(localStorage.getItem('presenze')) || {};
+
+        if (!presenze[nome]) {
+            presenze[nome] = { presente: 0, assente: 0, ritardo: 0 };
         }
 
-        // Crea una cella con lo stato (presente, assente, ritardo)
-        function createStatusCell(statusType, className, student) {
-            const cell = document.createElement('td');
-            cell.classList.add('status', statusType);
+        presenze[nome][tipo] += 1;
 
-            // Controlla se c'è uno stato già salvato
-            const savedStatus = attendanceData[className]?.[student];
-            if (savedStatus === statusType) {
-                cell.style.backgroundColor = getStatusColor(statusType);
-            }
+        localStorage.setItem('presenze', JSON.stringify(presenze));
 
-            // Al click, cambia lo stato
-            cell.addEventListener('click', function() {
-                updateStatus(className, student, statusType);
-                updateVisibleStatus(student, className); // Aggiorna lo stato visibile
-            });
+        document.getElementById(`${tipo}-${nome}`).textContent = presenze[nome][tipo];
+    }
 
-            return cell;
+    function inserisciConteggio(nome, tipo, valore) {
+        const presenze = JSON.parse(localStorage.getItem('presenze')) || {};
+
+        if (!presenze[nome]) {
+            presenze[nome] = { presente: 0, assente: 0, ritardo: 0 };
         }
 
-        // Aggiorna lo stato dell'alunno
-        function updateStatus(className, student, statusType) {
-            // Cancellare eventuali stati precedenti
-            if (!attendanceData[className]) attendanceData[className] = {};
-            delete attendanceData[className][student];
+        presenze[nome][tipo] += parseInt(valore);
 
-            // Imposta il nuovo stato
-            attendanceData[className][student] = statusType;
-            localStorage.setItem('attendanceData', JSON.stringify(attendanceData));
+        localStorage.setItem('presenze', JSON.stringify(presenze));
 
-            // Aggiorna la tabella
-            updateTotals();
-        }
+        document.getElementById(`${tipo}-${nome}`).textContent = presenze[nome][tipo];
+    }
 
-        // Aggiorna lo stato visibile di presenza, assenza, ritardo accanto allo studente
-        function updateVisibleStatus(student, className) {
-            const row = Array.from(tableBody.children).find(row => row.firstChild.textContent === student);
-            if (!row) return;
+</script>
 
-            const status = attendanceData[className]?.[student];
-            if (!status) return;
-
-            const cells = row.querySelectorAll('.status');
-            cells.forEach(cell => {
-                cell.textContent = ''; // Resetta il testo
-            });
-
-            const cellToUpdate = Array.from(cells).find(cell => cell.classList.contains(status));
-            if (cellToUpdate) {
-                cellToUpdate.textContent = '✔️'; // Segno di spunta o altro simbolo per indicare lo stato
-            }
-
-            // Aggiorna i totali accanto alle colonne
-            updateColumnCounts(className);
-        }
-
-        // Conta il totale di presenze, assenze o ritardi per lo studente
-        function countTotal(statusType, student) {
-            let totalCount = 0;
-            Object.keys(attendanceData).forEach(className => {
-                if (attendanceData[className][student] === statusType) {
-                    totalCount++;
-                }
-            });
-            return totalCount;
-        }
-
-        // Aggiorna i totali accanto alle colonne
-        function updateColumnCounts(className) {
-            students[className].forEach(student => {
-                const row = Array.from(tableBody.children).find(row => row.firstChild.textContent === student);
-                if (row) {
-                    const presentCell = row.querySelectorAll('.status.present').length;
-                    const absentCell = row.querySelectorAll('.status.absent').length;
-                    const lateCell = row.querySelectorAll('.status.late').length;
-
-                    row.querySelectorAll('.count')[0].textContent = presentCell;
-                    row.querySelectorAll('.count')[1].textContent = absentCell;
-                    row.querySelectorAll('.count')[2].textContent = lateCell;
-                }
-            });
-        }
-
-        // Carica la classe salvata
-        document.addEventListener('DOMContentLoaded', function () {
-            const savedClass = localStorage.getItem('selectedClass');
-            if (savedClass) {
-                classSelect.value = savedClass;
-                classSelect.dispatchEvent(new Event('change'));
-            }
-        });
-
-        // Salva la classe selezionata
-        classSelect.addEventListener('change', function () {
-            localStorage.setItem('selectedClass', classSelect.value);
-        });
-    </script>
 </body>
 </html>
