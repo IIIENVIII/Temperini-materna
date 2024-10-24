@@ -1,47 +1,281 @@
-<script>
-    // Aggiungi una colonna per la verifica
-    function addTestColumn(date, subject, grades) {
-        // Aggiunge la data e la materia nel header con la "X" rossa
-        const headerCell = document.createElement('th');
-        headerCell.innerHTML = `${date} - ${subject} <span class="delete-column">X</span>`;
-        tableHeader.appendChild(headerCell);
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Risultati Verifiche</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+            padding: 10px;
+            text-align: center;
+        }
+        table {
+            margin-top: 20px;
+            width: 100%;
+        }
+        th, td {
+            width: auto;
+        }
+        .red {
+            color: red;
+        }
+        .editable {
+            cursor: pointer;
+        }
+        .grade-red {
+            color: red;
+            font-weight: bold;
+        }
+        .grade-black {
+            color: black;
+            font-weight: bold;
+        }
+        .grade-input {
+            width: 50px;
+            text-align: center;
+            border: 1px solid #ccc;
+            padding: 5px;
+            box-sizing: border-box;
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Gestione Verifiche</h1>
 
-        // Aggiunge una cella per ogni studente
-        Array.from(tableBody.children).forEach(row => {
-            const cell = document.createElement('td');
-            const studentName = row.firstElementChild.textContent;
-            if (grades && grades[studentName] !== undefined) {
-                cell.textContent = grades[studentName];
-                if (grades[studentName] === 'ass') {
-                    cell.classList.add('grade-absent');
-                } else if (grades[studentName] === 'eson') {
-                    cell.classList.add('grade-exempt');
-                } else if (grades[studentName] >= 10 && grades[studentName] <= 59) {
-                    cell.classList.add('grade-red');
-                } else if (grades[studentName] >= 60 && grades[studentName] <= 100) {
-                    cell.classList.add('grade-black');
-                }
+    <!-- Selezione della classe -->
+    <label for="classSelect">Seleziona la classe:</label>
+    <select id="classSelect">
+        <option value="">-- Seleziona una classe --</option>
+        <option value="3 media">3 media</option>
+        <option value="1 superiore">1 superiore</option>
+    </select>
+
+    <!-- Selezione della materia -->
+    <div id="subjectSection" style="display:none;">
+        <h3>Seleziona la materia:</h3>
+        <select id="subjectSelect">
+            <option value="Italiano">Italiano</option>
+            <option value="Matematica">Matematica</option>
+            <option value="Scienze">Scienze</option>
+            <option value="Geografia">Geografia</option>
+            <option value="Storia">Storia</option>
+            <option value="Ginnastica">Ginnastica</option>
+            <option value="Arte">Arte</option>
+            <option value="Disegno">Disegno</option>
+            <option value="Informatica">Informatica</option>
+            <option value="Musica">Musica</option>
+        </select>
+
+        <br><br>
+
+        <label for="testDate">Data della verifica:</label>
+        <input type="date" id="testDate">
+        <br><br>
+
+        <button id="createTestBtn">Crea Verifica</button>
+    </div>
+
+    <!-- Tabella studenti -->
+    <table id="studentsTable" style="display:none;">
+        <thead>
+            <tr id="tableHeader">
+                <th>Studente</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+
+    <script>
+        // Dati per le classi
+        const students = {
+            '3 media': [
+                "Stellina Dematteis", "Tartaruga Dematteis", "Yucky Benua", "Lollo Benua", "Leonard Benua",
+                "Sparcky Benua", "Flaffy Dematteis", "Tina Dematteis", "Grigetta Benua", "Luna Dematteis",
+                "Luna Benua", "Kendy Dematteis", "Papero Benua", "Curt Dematteis", "Briciola Dematteis", 
+                "Lampo Benua", "Sunny Benua", "Attiglio Dematteis"
+            ],
+            '1 superiore': [
+                "Cane Dematteis", "Cane Benua", "Mician Dematteis", "Cicciobello Allabue", "Micheal Temperini",
+                "Cattivo Temperini", "Bambola Rossetti", "Teschio Carottini", "Robottina Carottini"
+            ]
+        };
+
+        const classSelect = document.getElementById('classSelect');
+        const subjectSection = document.getElementById('subjectSection');
+        const studentsTable = document.getElementById('studentsTable');
+        const tableHeader = document.getElementById('tableHeader');
+        const tableBody = document.getElementById('tableBody');
+        const createTestBtn = document.getElementById('createTestBtn');
+
+        let currentClass = '';
+        let tests = JSON.parse(localStorage.getItem('tests')) || {}; // Salva verifiche
+
+        // Quando selezioni una classe
+        classSelect.addEventListener('change', function() {
+            const selectedClass = classSelect.value;
+            if (selectedClass) {
+                subjectSection.style.display = 'block'; // Mostra la sezione per scegliere le materie
+                studentsTable.style.display = 'table';  // Mostra la tabella degli studenti
+                loadStudents(selectedClass);
+                currentClass = selectedClass;
             } else {
-                cell.textContent = '-';
+                subjectSection.style.display = 'none';
+                studentsTable.style.display = 'none';
             }
-            cell.classList.add('editable');
-            cell.addEventListener('click', function() {
-                enableEditMode(cell, grades ? grades[studentName] : '');
-            });
-            row.appendChild(cell);
         });
 
-        // Gestisce la cancellazione della colonna
-        headerCell.querySelector('.delete-column').addEventListener('click', function() {
-            const index = Array.from(tableHeader.children).indexOf(headerCell) - 1; // -1 per escludere la colonna Studente
-            tableHeader.removeChild(headerCell);
-            Array.from(tableBody.children).forEach(row => {
-                row.removeChild(row.children[index + 1]); // +1 per escludere la colonna "Studente"
+        // Carica gli studenti e le verifiche per la classe selezionata
+        function loadStudents(className) {
+            tableBody.innerHTML = ''; // Pulisce la tabella
+            tableHeader.innerHTML = '<th>Studente</th>'; // Reset del header della tabella
+
+            // Crea righe per gli studenti
+            students[className].forEach(student => {
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.textContent = student;
+                row.appendChild(cell);
+                tableBody.appendChild(row);
+
+                // Aggiungi il voto se esiste già per questo studente
+                if (tests[className]) {
+                    tests[className].forEach(test => {
+                        const grades = test.grades || {};
+                        const grade = grades[student];
+                        const gradeCell = document.createElement('td');
+                        if (grade !== undefined) {
+                            gradeCell.textContent = grade;
+                            if (grade >= 10 && grade <= 59) {
+                                gradeCell.classList.add('grade-red');
+                            } else if (grade >= 60 && grade <= 100) {
+                                gradeCell.classList.add('grade-black');
+                            }
+                        } else {
+                            gradeCell.textContent = '-';
+                        }
+                        gradeCell.classList.add('editable'); // Aggiungi la classe per rendere la cella modificabile
+                        gradeCell.addEventListener('click', function() {
+                            enableEditMode(gradeCell, grade);
+                        });
+                        row.appendChild(gradeCell);
+                    });
+                }
             });
 
-            // Rimuove il test salvato in locale
-            tests[currentClass].splice(index, 1);
+            // Carica le verifiche precedenti (se esistono)
+            if (tests[className]) {
+                tests[className].forEach(test => {
+                    addTestColumn(test.date, test.subject, test.grades);
+                });
+            }
+        }
+
+        // Aggiungi una colonna per la verifica
+        function addTestColumn(date, subject, grades) {
+            // Aggiunge la data, materia e una "X" per cancellare nel header
+            const headerCell = document.createElement('th');
+            headerCell.innerHTML = `${date} - ${subject} <span class="delete-column" style="color: red; cursor: pointer;">&times;</span>`;
+            tableHeader.appendChild(headerCell);
+
+            // Aggiunge una cella per ogni studente
+            Array.from(tableBody.children).forEach(row => {
+                const cell = document.createElement('td');
+                const studentName = row.firstElementChild.textContent;
+                if (grades && grades[studentName] !== undefined) {
+                    cell.textContent = grades[studentName];
+                    if (grades[studentName] >= 10 && grades[studentName] <= 59) {
+                        cell.classList.add('grade-red');
+                    } else if (grades[studentName] >= 60 && grades[studentName] <= 100) {
+                        cell.classList.add('grade-black');
+                    }
+                } else {
+                    cell.textContent = '-';
+                }
+                cell.classList.add('editable');
+                cell.addEventListener('click', function() {
+                    enableEditMode(cell, grades ? grades[studentName] : '');
+                });
+                row.appendChild(cell);
+            });
+
+            // Gestisce la cancellazione della colonna
+            headerCell.querySelector('.delete-column').addEventListener('click', function() {
+                const index = Array.from(tableHeader.children).indexOf(headerCell) - 1; // -1 per escludere la colonna Studente
+                tableHeader.removeChild(headerCell);
+                Array.from(tableBody.children).forEach(row => {
+                    row.removeChild(row.children[index + 1]); // +1 per escludere la colonna "Studente"
+                });
+
+                // Rimuove il test salvato in locale
+                tests[currentClass].splice(index, 1);
+                localStorage.setItem('tests', JSON.stringify(tests));
+            });
+        }
+
+        // Abilita la modalità di modifica della cella
+        function enableEditMode(cell, currentGrade) {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.classList.add('grade-input');
+            input.value = currentGrade !== undefined ? currentGrade : '';
+            input.addEventListener('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    const newGrade = input.value;
+                    cell.textContent = newGrade;
+                    updateGrade(cell, newGrade);
+                }
+            });
+            cell.innerHTML = '';
+            cell.appendChild(input);
+            input.focus();
+        }
+
+        // Aggiorna il voto nella tabella e nel localStorage
+        function updateGrade(cell, newGrade) {
+            const studentRow = cell.parentElement;
+            const studentName = studentRow.firstElementChild.textContent;
+            const columnIndex = Array.from(studentRow.children).indexOf(cell) - 1;
+            if (!tests[currentClass][columnIndex].grades) {
+                tests[currentClass][columnIndex].grades = {};
+            }
+            tests[currentClass][columnIndex].grades[studentName] = newGrade;
+            localStorage.setItem('tests', JSON.stringify(tests));
+
+            // Applica la classe per il colore del voto
+            if (newGrade >= 10 && newGrade <= 59) {
+                cell.classList.add('grade-red');
+                cell.classList.remove('grade-black');
+            } else if (newGrade >= 60 && newGrade <= 100) {
+                cell.classList.add('grade-black');
+                cell.classList.remove('grade-red');
+            } else {
+                cell.classList.remove('grade-red', 'grade-black');
+            }
+        }
+
+        // Crea una nuova verifica
+        createTestBtn.addEventListener('click', function() {
+            const subject = document.getElementById('subjectSelect').value;
+            const date = document.getElementById('testDate').value;
+            if (!tests[currentClass]) {
+                tests[currentClass] = [];
+            }
+            const newTest = {
+                subject: subject,
+                date: date,
+                grades: {}
+            };
+            tests[currentClass].push(newTest);
+            addTestColumn(date, subject);
             localStorage.setItem('tests', JSON.stringify(tests));
         });
-    }
-</script>
+    </script>
+</body>
+</html>
